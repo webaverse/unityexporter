@@ -1,0 +1,25 @@
+{
+  "name": "com.webaverse.unityexporter",
+  "version": "0.0.1",
+  "displayName": "WebaverseUnityExporter",
+  "description": "Export your world to the Metaverse",
+  "unity": "2022.1",
+  "unityRelease": "3f1",
+  "documentationUrl": "https://github.com/webaverse/unityexporter",
+  "changelogUrl": "https://github.com/webaverse/unityexporter/CHANGELOG.md",
+  "licensesUrl": "https://github.com/webaverse/unityexporter/LICENSE.md",
+  "dependencies": {
+    "com.atteneder.gltfast": "4.8.2",
+    "com.unity.nuget.newtonsoft-json": "3.0.0"
+  },
+  "keywords": [
+    "webaverse",
+    "scene",
+    "export"
+  ],
+  "author": {
+    "name": "Webaverse",
+    "email": "hello@webaverse.com",
+    "url": "https://www.webaverse.com"
+  }
+}
