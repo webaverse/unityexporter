@@ -226,9 +226,13 @@ public class ExportScene : EditorWindow
                 PipelineSettings.GLTFName = EditorGUILayout.TextField("Name:", String.IsNullOrEmpty(PipelineSettings.GLTFName) ? "scene" : PipelineSettings.GLTFName, GUILayout.ExpandWidth(true));
                 
 
-                if (GUILayout.Button("Set Output Directory"))
+                if (GUILayout.Button("Set Output Directory", GUILayout.Height(30f)))
                 {
                     PipelineSettings.ProjectFolder = EditorUtility.SaveFolderPanel("Output Directory", PipelineSettings.ProjectFolder, "");
+                }
+                if (PipelineSettings.ProjectFolder != "")
+                {
+                    EditorGUILayout.LabelField("Project Folder: " + PipelineSettings.ProjectFolder);
                 }
                 GUILayout.Space(8);
 
@@ -453,13 +457,17 @@ public class ExportScene : EditorWindow
     Light[] realtimeLights;
     public void StageRealtimeLights()
     {
+        UnityEngine.Debug.Log("stages realtime lights");
         realtimeLights = FindObjectsOfType<Light>().Where((light) => light.gameObject.activeInHierarchy && light.lightmapBakeType == LightmapBakeType.Realtime).ToArray();
+        
 
         foreach (var light in realtimeLights)
         {
             light.gameObject.SetActive(false);
         }
+        UnityEngine.Debug.Log("HERE");
         UnityEngine.Debug.Log(realtimeLights);
+        UnityEngine.Debug.Log(realtimeLights.Length);
     }
 
     public void CleanupRealtimeLights()
@@ -1248,6 +1256,7 @@ public class ExportScene : EditorWindow
         SendToWebaverse(GLBName);
         CreateMetaverseFile();
         CreateSceneFile(GLBName);
+
         File.Delete(Path.Combine(PipelineSettings.ConversionFolder, PipelineSettings.GLTFName + ".glb"));
         File.Delete(Path.Combine(PipelineSettings.ConversionFolder, PipelineSettings.GLTFName + ".gltf"));
         File.Delete(Path.Combine(PipelineSettings.ConversionFolder, PipelineSettings.GLTFName + ".bin"));
@@ -1256,33 +1265,35 @@ public class ExportScene : EditorWindow
         CleanupLights();
         CleanupRealtimeLights();
         state = State.INITIAL;
+
+
     }
 
     private void SendToWebaverse(string GLBName)
     {
         // if project folder directory doesn't exist, create it
-        DirectoryInfo projectDir = new DirectoryInfo(PipelineSettings.ConversionFolder);
+        DirectoryInfo projectDir = new DirectoryInfo(PipelineSettings.ProjectFolder);
         if (!projectDir.Exists)
-            Directory.CreateDirectory(PipelineSettings.ConversionFolder);
+            Directory.CreateDirectory(PipelineSettings.ProjectFolder);
 
         // if project folder directory doesn't exist, create it
-        projectDir = new DirectoryInfo(PipelineSettings.ConversionFolder + "/Webaverse");
+        projectDir = new DirectoryInfo(PipelineSettings.ProjectFolder + "/Webaverse");
         if (!projectDir.Exists)
-            Directory.CreateDirectory(PipelineSettings.ConversionFolder + "/Webaverse");
+            Directory.CreateDirectory(PipelineSettings.ProjectFolder + "/Webaverse");
 
-        projectDir = new DirectoryInfo(PipelineSettings.ConversionFolder + "/Webaverse/" + PipelineSettings.GLTFName);
+        projectDir = new DirectoryInfo(PipelineSettings.ProjectFolder + "/Webaverse/" + PipelineSettings.GLTFName);
         if (!projectDir.Exists)
-            Directory.CreateDirectory(PipelineSettings.ConversionFolder + "/Webaverse/" + PipelineSettings.GLTFName);
+            Directory.CreateDirectory(PipelineSettings.ProjectFolder + "/Webaverse/" + PipelineSettings.GLTFName);
 
         // copy the glb to the project folder
-        File.Copy(GLBName, Path.Combine(PipelineSettings.ConversionFolder + "/Webaverse", PipelineSettings.GLTFName, PipelineSettings.GLTFName + ".glb"), true);
+        File.Copy(GLBName, Path.Combine(PipelineSettings.ProjectFolder + "/Webaverse", PipelineSettings.GLTFName, PipelineSettings.GLTFName + ".glb"), true);
     }
 
     private void CreateMetaverseFile()
     {
         String metaverseFile = "{\"name\": \"" + PipelineSettings.GLTFName + "\", \"start_url\": \"" + PipelineSettings.GLTFName + ".scn\" }";
         // write the metaverse file to the project folder
-        File.WriteAllText(Path.Combine(PipelineSettings.ConversionFolder + "/Webaverse", PipelineSettings.GLTFName, ".metaversefile"), metaverseFile);
+        File.WriteAllText(Path.Combine(PipelineSettings.ProjectFolder + "/Webaverse", PipelineSettings.GLTFName, ".metaversefile"), metaverseFile);
     }
 
     private void CreateSceneFile(string GLBName)
@@ -1334,7 +1345,7 @@ public class ExportScene : EditorWindow
         setting.NullValueHandling = NullValueHandling.Ignore;
 
         var json = JsonConvert.SerializeObject(scene, setting);
-        var path = Path.Combine(PipelineSettings.ConversionFolder + "/./Webaverse", PipelineSettings.GLTFName, PipelineSettings.GLTFName + ".scn");
+        var path = Path.Combine(PipelineSettings.ProjectFolder + "/./Webaverse", PipelineSettings.GLTFName, PipelineSettings.GLTFName + ".scn");
 
         File.WriteAllText(path, json);
     }

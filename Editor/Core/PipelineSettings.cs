@@ -202,25 +202,33 @@ public static class PipelineSettings
 
     public static void ClearPipelineJunk()
     {
-        Regex filter = new Regex(@".*\.(jpg|png|tga|asset|mat)");
-        var pipelineFiles = Directory.GetFiles(PipelineFolder);
-        Queue<string> q = new Queue<string>(pipelineFiles);
-        List<string> toRemove = new List<string>();
-        while(q.Count > 0)
+        if (Directory.Exists(PipelineFolder))
         {
-            string path = q.Dequeue();
-            if(Directory.Exists(path))
+            Regex filter = new Regex(@".*\.(jpg|png|tga|asset|mat)");
+
+            var pipelineFiles = Directory.GetFiles(PipelineFolder);
+            Queue<string> q = new Queue<string>(pipelineFiles);
+            List<string> toRemove = new List<string>();
+            while (q.Count > 0)
             {
-                string[] contents = Directory.GetFiles(path);
-                contents.ToList().ForEach((x) => q.Enqueue(x));
+                string path = q.Dequeue();
+                if (Directory.Exists(path))
+                {
+                    string[] contents = Directory.GetFiles(path);
+                    contents.ToList().ForEach((x) => q.Enqueue(x));
+                }
+                else
+                if (filter.IsMatch(path))
+                {
+                    toRemove.Add(path);
+                }
             }
-            else
-            if(filter.IsMatch(path))
-            {
-                toRemove.Add(path);
-            }
+            AssetDatabase.DeleteAssets(toRemove.ToArray(), new List<string>());
         }
-        AssetDatabase.DeleteAssets(toRemove.ToArray(), new List<string>());
+        else
+        {
+            Debug.Log("Path " + PipelineFolder + " does not exists, known issue, ignore this warning");
+        }
         AssetDatabase.DeleteAsset(PipelineAssetsFolder.Replace(Application.dataPath, "Assets"));
     }
 }

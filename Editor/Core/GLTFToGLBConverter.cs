@@ -218,6 +218,7 @@ public  class  GLTFToGLBConverter
             {
                 glbWriter.Write(Convert.ToByte(0x20));
             }
+            binary.Close();
         }
 
         glbWriter.Close();
