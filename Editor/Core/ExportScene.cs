@@ -42,6 +42,7 @@ public class ExportScene : EditorWindow
         {
             OnChangeMainScene();
         };
+        UnityEngine.Debug.Log("started");
         window.Show();
     }
 
@@ -536,7 +537,6 @@ public class ExportScene : EditorWindow
                 "posx",
                 "posy",
                 "negy",
-
                 "posz",
                 "negz"
                 };
@@ -1136,22 +1136,25 @@ public class ExportScene : EditorWindow
     }
     private void ExportSequence(bool savePersistent)
     {
-        DirectoryInfo directory = new DirectoryInfo(PipelineSettings.ConversionFolder);
-        if(!directory.Exists)
+        // FOLDER SETUP
+        // STEP 1 GET THE CONVERSION FOLDER, IF IT DOES NOT EXISTS SIMPLY CREATE IT
+        DirectoryInfo conversionDirectory = new DirectoryInfo(PipelineSettings.ConversionFolder);
+        if(!conversionDirectory.Exists)
         {
             Directory.CreateDirectory(PipelineSettings.ConversionFolder);
         }
+        // STEP 2 CREATE ASSETS FOLDER WHERE WE WILL STORE ADDITIONAL INFORMATION
         string exportFolder = Path.Combine(PipelineSettings.ProjectFolder, "assets");
         DirectoryInfo outDir = new DirectoryInfo(exportFolder);
         if(!outDir.Exists)
         {
             Directory.CreateDirectory(exportFolder);
         }
-            
-        var files = directory.GetFiles();
-        var subDirectories = directory.GetDirectories();
+        // GET FILES IN THE CONVERSION DIRECTORY AND REMOVE THEM
+        var files = conversionDirectory.GetFiles();
+        var subDirectories = conversionDirectory.GetDirectories();
 
-        //delete files in pipeline folder to make way for new export
+        // delete files in pipeline folder to make way for new export
         foreach(var file in files)
         {
             file.Delete();
@@ -1167,6 +1170,7 @@ public class ExportScene : EditorWindow
         ExporterSettings.Export.folder = PipelineSettings.ConversionFolder;
         //set other exporter parameters
         ExporterSettings.NormalTexture.maxSize = PipelineSettings.CombinedTextureResolution;
+        //END FOLDER SETUP 
 
         //TODO: move most of these export helper functions into the OnExport handlers of the
         //      Webaverse classes
@@ -1244,7 +1248,6 @@ public class ExportScene : EditorWindow
         {
             CleanupExportEnvmap();
         }
-        UnityEngine.Debug.Log("Setting realtime lights");
 
         PipelineSettings.ClearPipelineJunk();
         UnityEngine.Debug.Log("ExportPath " + ExportPath);
@@ -1257,9 +1260,9 @@ public class ExportScene : EditorWindow
         CreateMetaverseFile();
         CreateSceneFile(GLBName);
 
-        File.Delete(Path.Combine(PipelineSettings.ConversionFolder, PipelineSettings.GLTFName + ".glb"));
-        File.Delete(Path.Combine(PipelineSettings.ConversionFolder, PipelineSettings.GLTFName + ".gltf"));
-        File.Delete(Path.Combine(PipelineSettings.ConversionFolder, PipelineSettings.GLTFName + ".bin"));
+        //File.Delete(Path.Combine(PipelineSettings.ConversionFolder, PipelineSettings.GLTFName + ".glb"));
+        //File.Delete(Path.Combine(PipelineSettings.ConversionFolder, PipelineSettings.GLTFName + ".gltf"));
+        //File.Delete(Path.Combine(PipelineSettings.ConversionFolder, PipelineSettings.GLTFName + ".bin"));
 
         CleanupLightmapping();
         CleanupLights();
@@ -1310,6 +1313,7 @@ public class ExportScene : EditorWindow
         sceneObject.start_url = "./" + PipelineSettings.GLTFName + ".glb";
         scene.objects.Add(sceneObject);
         UnityEngine.Debug.Log("realtimeLights" + realtimeLights);
+
         foreach (var light in realtimeLights)
         {
             UnityEngine.Debug.Log("Handling light loop...");
