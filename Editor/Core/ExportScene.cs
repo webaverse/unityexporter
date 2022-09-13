@@ -42,7 +42,6 @@ public class ExportScene : EditorWindow
         {
             OnChangeMainScene();
         };
-        UnityEngine.Debug.Log("started");
         window.Show();
     }
 
@@ -63,15 +62,15 @@ public class ExportScene : EditorWindow
 
     public string ConversionPath => Path.Combine(PipelineSettings.ConversionFolder, PipelineSettings.GLTFName);
     
-    public string ExportPath
-    {
-        get
-        {
-            string exportFolder = PipelineSettings.ProjectFolder + "/assets/";
+    //public string ExportPath
+    //{
+    //    get
+    //    {
+    //        string exportFolder = PipelineSettings.ProjectFolder + "/assets/";
 
-            return exportFolder;
-        }
-    }
+    //        return exportFolder;
+    //    }
+    //}
     
     private void OnFocus()
     {
@@ -115,7 +114,7 @@ public class ExportScene : EditorWindow
                 GUILayout.Space(16);
 
                 showOptimization = EditorGUILayout.Foldout(showOptimization, "GLTF Optimization");
-
+                //
                 if (showOptimization)
                 {
                     PipelineSettings.InstanceMeshes = EditorGUILayout.Toggle("Instanced Meshes", PipelineSettings.InstanceMeshes);
@@ -1137,33 +1136,20 @@ public class ExportScene : EditorWindow
     private void ExportSequence(bool savePersistent)
     {
         // FOLDER SETUP
-        // STEP 1 GET THE CONVERSION FOLDER, IF IT DOES NOT EXISTS SIMPLY CREATE IT
-        DirectoryInfo conversionDirectory = new DirectoryInfo(PipelineSettings.ConversionFolder);
-        if(!conversionDirectory.Exists)
-        {
-            Directory.CreateDirectory(PipelineSettings.ConversionFolder);
-        }
-        // STEP 2 CREATE ASSETS FOLDER WHERE WE WILL STORE ADDITIONAL INFORMATION
+        // DEV
+        // STEP 1 MAKE SURE PIPELINE HAS BASIC FOLDERS
+        PipelineSettings.CreateMissingDirectories();
+
+        // PENDING TO CHECK WHAT IS THIS FOLDER USED FOR
         string exportFolder = Path.Combine(PipelineSettings.ProjectFolder, "assets");
         DirectoryInfo outDir = new DirectoryInfo(exportFolder);
         if(!outDir.Exists)
         {
             Directory.CreateDirectory(exportFolder);
         }
-        // GET FILES IN THE CONVERSION DIRECTORY AND REMOVE THEM
-        var files = conversionDirectory.GetFiles();
-        var subDirectories = conversionDirectory.GetDirectories();
 
-        // delete files in pipeline folder to make way for new export
-        foreach(var file in files)
-        {
-            file.Delete();
-        }
-
-        foreach(var subDir in subDirectories)
-        {
-            subDir.Delete(true);
-        }
+        // CLEAR EXISTING CONVERSION DATA
+        PipelineSettings.ClearConversionData();
 
         //set exporter path
         ExporterSettings.Export.name = PipelineSettings.GLTFName;
@@ -1250,7 +1236,7 @@ public class ExportScene : EditorWindow
         }
 
         PipelineSettings.ClearPipelineJunk();
-        UnityEngine.Debug.Log("ExportPath " + ExportPath);
+        //UnityEngine.Debug.Log("ExportPath " + ExportPath);
 
         var converter = new GLTFToGLBConverter();
         converter.ConvertToGLB(PipelineSettings.ConversionFolder + PipelineSettings.GLTFName);

@@ -197,7 +197,41 @@ public static class PipelineSettings
     {
         var data = new Data();
         data.Set();
+        CreateMissingDirectories();
         File.WriteAllText(ConfigFile, JsonConvert.SerializeObject(data, Formatting.Indented));
+    }
+    public static void CreateMissingDirectories()
+    {
+        DirectoryInfo pipelineDirectory = new DirectoryInfo(PipelineFolder);
+        if (!pipelineDirectory.Exists)
+        {
+            Directory.CreateDirectory(PipelineFolder);
+        }
+        DirectoryInfo conversionDirectory = new DirectoryInfo(ConversionFolder);
+        if (!conversionDirectory.Exists)
+        {
+            Directory.CreateDirectory(ConversionFolder);
+        }
+    }
+    public static void ClearConversionData()
+    {
+        DirectoryInfo conversionDirectory = new DirectoryInfo(ConversionFolder);
+        if (!conversionDirectory.Exists)
+        {
+            var files = conversionDirectory.GetFiles();
+            var subDirectories = conversionDirectory.GetDirectories();
+
+            // delete files in pipeline folder to make way for new export
+            foreach (var file in files)
+            {
+                file.Delete();
+            }
+
+            foreach (var subDir in subDirectories)
+            {
+                subDir.Delete(true);
+            }
+        }
     }
 
     public static void ClearPipelineJunk()
@@ -227,7 +261,7 @@ public static class PipelineSettings
         }
         else
         {
-            Debug.Log("Path " + PipelineFolder + " does not exists, known issue, ignore this warning");
+            Debug.Log("Pipeline folder clear");
         }
         AssetDatabase.DeleteAsset(PipelineAssetsFolder.Replace(Application.dataPath, "Assets"));
     }
