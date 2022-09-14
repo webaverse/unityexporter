@@ -62,15 +62,15 @@ public class ExportScene : EditorWindow
 
     public string ConversionPath => Path.Combine(PipelineSettings.ConversionFolder, PipelineSettings.GLTFName);
     
-    public string ExportPath
-    {
-        get
-        {
-            string exportFolder = PipelineSettings.ProjectFolder + "/assets/";
+    //public string ExportPath
+    //{
+    //    get
+    //    {
+    //        string exportFolder = PipelineSettings.ProjectFolder + "/assets/";
 
-            return exportFolder;
-        }
-    }
+    //        return exportFolder;
+    //    }
+    //}
     
     private void OnFocus()
     {
@@ -114,7 +114,7 @@ public class ExportScene : EditorWindow
                 GUILayout.Space(16);
 
                 showOptimization = EditorGUILayout.Foldout(showOptimization, "GLTF Optimization");
-
+                //
                 if (showOptimization)
                 {
                     PipelineSettings.InstanceMeshes = EditorGUILayout.Toggle("Instanced Meshes", PipelineSettings.InstanceMeshes);
@@ -228,7 +228,9 @@ public class ExportScene : EditorWindow
 
                 if (GUILayout.Button("Set Output Directory", GUILayout.Height(30f)))
                 {
-                    PipelineSettings.ProjectFolder = EditorUtility.SaveFolderPanel("Output Directory", PipelineSettings.ProjectFolder, "");
+                    string dir = EditorUtility.SaveFolderPanel("Output Directory", PipelineSettings.ProjectFolder, "");
+                    if (dir != "")
+                        PipelineSettings.ProjectFolder = dir;
                 }
                 if (PipelineSettings.ProjectFolder != "")
                 {
@@ -529,14 +531,13 @@ public class ExportScene : EditorWindow
     {
         if (PipelineSettings.ExportSkybox)
         {
-            var skyMat = RenderSettings.skybox;
+            // INFO TO SAVE DATA
             string[] fNames = new string[]
                 {
                 "negx",
                 "posx",
                 "posy",
                 "negy",
-
                 "posz",
                 "negz"
                 };
@@ -546,6 +547,9 @@ public class ExportScene : EditorWindow
                 Directory.CreateDirectory(nuPath);
             }
             SkyBox.Mode outMode = SkyBox.Mode.CUBEMAP;
+
+            // THE CUBEMAP
+            var skyMat = RenderSettings.skybox;
             if (skyMat.shader.name == "Skybox/6 Sided")
             {
                 string[] texNames = new[]
@@ -560,7 +564,11 @@ public class ExportScene : EditorWindow
                 string[] faceTexes = texNames.Select((x, i) =>
                 {
                     string facePath = string.Format("{0}/{1}.jpg", nuPath, fNames[i]);
-                    File.WriteAllBytes(facePath, ((Texture2D)skyMat.GetTexture(x)).EncodeToJPG());
+                    UnityEngine.Debug.Log(facePath);
+                    if (skyMat.GetTexture(x) != null)
+                        File.WriteAllBytes(facePath, ((Texture2D)skyMat.GetTexture(x)).EncodeToJPG());
+                    else
+                        File.WriteAllBytes(facePath, TextureConverter.CreateFromColor(skyMat.GetColor("_Tint"), 128, 128).EncodeToJPG());
                     return x;
                 }).ToArray();
             }
@@ -650,6 +658,7 @@ public class ExportScene : EditorWindow
 
     private void SerializeSelectedAssets(bool savePersistent = false)
     {
+        UnityEngine.Debug.LogWarning("serialize selected");
         var renderers = Selection.gameObjects.Select((go) => go.GetComponent<Renderer>()).Where((rend) => rend != null);
         foreach(var renderer in renderers)
         {
@@ -671,9 +680,11 @@ public class ExportScene : EditorWindow
 
     private void SerializeMaterials(IEnumerable<Renderer> renderers, bool savePersistent = false)
     {
+        UnityEngine.Debug.LogWarning("serialize");
         matRegistry = matRegistry != null ? matRegistry : new Dictionary<string, Material>();
         matLinks = matLinks != null ? matLinks : new Dictionary<Material, Material>();
         texLinks = texLinks != null ? texLinks : new Dictionary<Texture2D, Texture2D>();
+        UnityEngine.Debug.Log(renderers.Count());
         var mats = renderers
             .SelectMany((rend) => rend.sharedMaterials
             .Select((mat) => new MatRend(mat, rend)))
@@ -721,8 +732,9 @@ public class ExportScene : EditorWindow
                 )
             }
         ));
-        if(rgroups.Count() > 0)
+        if (rgroups.Count() > 0)
         {
+            UnityEngine.Debug.Log(rgroups);
             var updates = rgroups.Aggregate((rGroup1, rGroup2) =>
             {
                 if (rGroup2 == null) return rGroup1;
@@ -736,6 +748,8 @@ public class ExportScene : EditorWindow
             if (updates != null)
                 foreach (var update in updates)
                 {
+                    UnityEngine.Debug.LogWarning("herer");
+                    UnityEngine.Debug.Log(update);
                     update.Key.sharedMaterials = update.Value;
                 }
         }
@@ -743,13 +757,12 @@ public class ExportScene : EditorWindow
     private List<Renderer> Renderers { get
         {
             List<Renderer> renderers = FindObjectsOfType<Renderer>().ToList();
-            renderers.AddRange(FindObjectsOfType<SkinnedMeshRenderer>().Select((smr) => smr as Renderer));
-            renderers.AddRange(FindObjectsOfType<MeshRenderer>().Select((mr) => mr as Renderer));
             renderers = renderers.Where((x) => x.gameObject.activeInHierarchy && x.enabled).ToList();
             return renderers;
         } }
     private void SerializeAllMaterials(bool savePersistent = false)
     {
+        UnityEngine.Debug.Log(Renderers.Count());
         SerializeMaterials(Renderers, savePersistent);
     }
 
@@ -758,6 +771,7 @@ public class ExportScene : EditorWindow
         HashSet<Material> toRemove = new HashSet<Material>();
         foreach (var renderer in renderers)
         {
+            UnityEngine.Debug.Log(renderer.gameObject.name);
             renderer.sharedMaterials = renderer.sharedMaterials.Select
             (
                 (mat) =>
@@ -1136,37 +1150,28 @@ public class ExportScene : EditorWindow
     }
     private void ExportSequence(bool savePersistent)
     {
-        DirectoryInfo directory = new DirectoryInfo(PipelineSettings.ConversionFolder);
-        if(!directory.Exists)
-        {
-            Directory.CreateDirectory(PipelineSettings.ConversionFolder);
-        }
+        // FOLDER SETUP
+        // DEV
+        // STEP 1 MAKE SURE PIPELINE HAS BASIC FOLDERS
+        PipelineSettings.CreateMissingDirectories();
+
+        // PENDING TO CHECK WHAT IS THIS FOLDER USED FOR
         string exportFolder = Path.Combine(PipelineSettings.ProjectFolder, "assets");
         DirectoryInfo outDir = new DirectoryInfo(exportFolder);
         if(!outDir.Exists)
         {
             Directory.CreateDirectory(exportFolder);
         }
-            
-        var files = directory.GetFiles();
-        var subDirectories = directory.GetDirectories();
 
-        //delete files in pipeline folder to make way for new export
-        foreach(var file in files)
-        {
-            file.Delete();
-        }
-
-        foreach(var subDir in subDirectories)
-        {
-            subDir.Delete(true);
-        }
+        // CLEAR EXISTING CONVERSION DATA
+        PipelineSettings.ClearConversionData();
 
         //set exporter path
         ExporterSettings.Export.name = PipelineSettings.GLTFName;
         ExporterSettings.Export.folder = PipelineSettings.ConversionFolder;
         //set other exporter parameters
         ExporterSettings.NormalTexture.maxSize = PipelineSettings.CombinedTextureResolution;
+        //END FOLDER SETUP 
 
         //TODO: move most of these export helper functions into the OnExport handlers of the
         //      Webaverse classes
@@ -1244,10 +1249,9 @@ public class ExportScene : EditorWindow
         {
             CleanupExportEnvmap();
         }
-        UnityEngine.Debug.Log("Setting realtime lights");
 
         PipelineSettings.ClearPipelineJunk();
-        UnityEngine.Debug.Log("ExportPath " + ExportPath);
+        //UnityEngine.Debug.Log("ExportPath " + ExportPath);
 
         var converter = new GLTFToGLBConverter();
         converter.ConvertToGLB(PipelineSettings.ConversionFolder + PipelineSettings.GLTFName);
@@ -1257,9 +1261,9 @@ public class ExportScene : EditorWindow
         CreateMetaverseFile();
         CreateSceneFile(GLBName);
 
-        File.Delete(Path.Combine(PipelineSettings.ConversionFolder, PipelineSettings.GLTFName + ".glb"));
-        File.Delete(Path.Combine(PipelineSettings.ConversionFolder, PipelineSettings.GLTFName + ".gltf"));
-        File.Delete(Path.Combine(PipelineSettings.ConversionFolder, PipelineSettings.GLTFName + ".bin"));
+        //File.Delete(Path.Combine(PipelineSettings.ConversionFolder, PipelineSettings.GLTFName + ".glb"));
+        //File.Delete(Path.Combine(PipelineSettings.ConversionFolder, PipelineSettings.GLTFName + ".gltf"));
+        //File.Delete(Path.Combine(PipelineSettings.ConversionFolder, PipelineSettings.GLTFName + ".bin"));
 
         CleanupLightmapping();
         CleanupLights();
@@ -1310,6 +1314,7 @@ public class ExportScene : EditorWindow
         sceneObject.start_url = "./" + PipelineSettings.GLTFName + ".glb";
         scene.objects.Add(sceneObject);
         UnityEngine.Debug.Log("realtimeLights" + realtimeLights);
+
         foreach (var light in realtimeLights)
         {
             UnityEngine.Debug.Log("Handling light loop...");
