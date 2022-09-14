@@ -134,17 +134,6 @@ public class ExportScene : EditorWindow
                     PipelineSettings.BasicGLTFConvert = EditorGUILayout.Toggle("Use Basic GLTF Converter", PipelineSettings.BasicGLTFConvert);
                     GUILayout.Space(16);
                 }
-                
-                if (GUILayout.Button("Save Settings as Default"))
-                {
-                    PipelineSettings.SaveSettings();
-                }
-                GUILayout.Space(32);
-                if (GUILayout.Button("Refresh Settings"))
-                {
-                    PipelineSettings.ReadSettingsFromConfig();
-                }
-                GUILayout.Space(16);
 
                 showAdvancedOptions = EditorGUILayout.Foldout(showAdvancedOptions, "Advanced Tools");
 
@@ -152,7 +141,8 @@ public class ExportScene : EditorWindow
                 {
 
                     savePersistentSelected = GUILayout.Toggle(savePersistentSelected, "Serialize into Persistent Assets (Are not deleted after export)");
-                    if(GUILayout.Button("Serialize Selected Assets"))
+                    
+                    if (GUILayout.Button("Serialize Selected Assets"))
                     {
                         SerializeSelectedAssets(savePersistentSelected);
                     }
@@ -219,38 +209,59 @@ public class ExportScene : EditorWindow
                             }
                         }
                     }
-                    
+
+                    doDebug = EditorGUILayout.Toggle("Debug Execution", doDebug);
+
                     GUILayout.EndVertical();
                 }
                 GUILayout.Space(8);
                 // Create a Name TextField with a default value of "scene"
                 PipelineSettings.GLTFName = EditorGUILayout.TextField("Name:", String.IsNullOrEmpty(PipelineSettings.GLTFName) ? "scene" : PipelineSettings.GLTFName, GUILayout.ExpandWidth(true));
-                
 
+                if (PipelineSettings.ProjectFolder != "")
+                {
+                    EditorGUILayout.LabelField("Project Folder: " + PipelineSettings.ProjectFolder);
+                }
+                GUILayout.Space(8);
                 if (GUILayout.Button("Set Output Directory", GUILayout.Height(30f)))
                 {
                     string dir = EditorUtility.SaveFolderPanel("Output Directory", PipelineSettings.ProjectFolder, "");
                     if (dir != "")
                         PipelineSettings.ProjectFolder = dir;
                 }
-                if (PipelineSettings.ProjectFolder != "")
-                {
-                    EditorGUILayout.LabelField("Project Folder: " + PipelineSettings.ProjectFolder);
-                }
                 GUILayout.Space(8);
+
 
                 if (PipelineSettings.ProjectFolder != null)
                 {
-                    doDebug = EditorGUILayout.Toggle("Debug Execution", doDebug);
-
-                    if (GUILayout.Button("Export"))
+                    if (GUILayout.Button("Export Scene", GUILayout.Height(30f)))
                     {
                         state = State.PRE_EXPORT;
-                        Export(false);
+                        Export(false, true);
                     }
+                    if (Selection.activeGameObject == null)
+                        GUI.enabled = false;
+                    if (GUILayout.Button("Export Selected", GUILayout.Height(30f)))
+                    {
+                        state = State.PRE_EXPORT;
+                        Export(false,false);
+                    }
+                    GUI.enabled = true;
                 } else {
                     EditorGUILayout.HelpBox("Please select an output directory", MessageType.Warning);
                 }
+
+                GUILayout.Space(8);
+                EditorGUILayout.BeginHorizontal();
+                if (GUILayout.Button("Refresh Settings", GUILayout.Height(30f), GUILayout.MinWidth(100f)))
+                {
+                    PipelineSettings.ReadSettingsFromConfig();
+                }
+                if (GUILayout.Button("Save Settings", GUILayout.Height(30f), GUILayout.MinWidth(100f)))
+                {
+                    PipelineSettings.SaveSettings();
+                }
+                EditorGUILayout.EndHorizontal();
                 break;
 
 
@@ -468,9 +479,6 @@ public class ExportScene : EditorWindow
         {
             light.gameObject.SetActive(false);
         }
-        UnityEngine.Debug.Log("HERE");
-        UnityEngine.Debug.Log(realtimeLights);
-        UnityEngine.Debug.Log(realtimeLights.Length);
     }
 
     public void CleanupRealtimeLights()
@@ -1140,11 +1148,11 @@ public class ExportScene : EditorWindow
 
 #endregion
 
-    private void Export(bool savePersistent)
+    private void Export(bool savePersistent, bool fullScene = true)
     {
-        ExportSequence(savePersistent);
+        ExportSequence(savePersistent, fullScene);
     }
-    private void ExportSequence(bool savePersistent)
+    private void ExportSequence(bool savePersistent, bool fullScene = true)
     {
         // FOLDER SETUP
         // DEV
@@ -1208,7 +1216,7 @@ public class ExportScene : EditorWindow
 
         try
         {
-            exporter.Export();
+            exporter.Export(fullScene);
         } catch (System.NullReferenceException e)
         {
             UnityEngine.Debug.LogError("export error:" + e);
