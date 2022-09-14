@@ -228,7 +228,9 @@ public class ExportScene : EditorWindow
 
                 if (GUILayout.Button("Set Output Directory", GUILayout.Height(30f)))
                 {
-                    PipelineSettings.ProjectFolder = EditorUtility.SaveFolderPanel("Output Directory", PipelineSettings.ProjectFolder, "");
+                    string dir = EditorUtility.SaveFolderPanel("Output Directory", PipelineSettings.ProjectFolder, "");
+                    if (dir != "")
+                        PipelineSettings.ProjectFolder = dir;
                 }
                 if (PipelineSettings.ProjectFolder != "")
                 {
@@ -529,7 +531,7 @@ public class ExportScene : EditorWindow
     {
         if (PipelineSettings.ExportSkybox)
         {
-            var skyMat = RenderSettings.skybox;
+            // INFO TO SAVE DATA
             string[] fNames = new string[]
                 {
                 "negx",
@@ -545,6 +547,9 @@ public class ExportScene : EditorWindow
                 Directory.CreateDirectory(nuPath);
             }
             SkyBox.Mode outMode = SkyBox.Mode.CUBEMAP;
+
+            // THE CUBEMAP
+            var skyMat = RenderSettings.skybox;
             if (skyMat.shader.name == "Skybox/6 Sided")
             {
                 string[] texNames = new[]
@@ -559,7 +564,11 @@ public class ExportScene : EditorWindow
                 string[] faceTexes = texNames.Select((x, i) =>
                 {
                     string facePath = string.Format("{0}/{1}.jpg", nuPath, fNames[i]);
-                    File.WriteAllBytes(facePath, ((Texture2D)skyMat.GetTexture(x)).EncodeToJPG());
+                    UnityEngine.Debug.Log(facePath);
+                    if (skyMat.GetTexture(x) != null)
+                        File.WriteAllBytes(facePath, ((Texture2D)skyMat.GetTexture(x)).EncodeToJPG());
+                    else
+                        File.WriteAllBytes(facePath, TextureConverter.CreateFromColor(skyMat.GetColor("_Tint"), 128, 128).EncodeToJPG());
                     return x;
                 }).ToArray();
             }
@@ -649,6 +658,7 @@ public class ExportScene : EditorWindow
 
     private void SerializeSelectedAssets(bool savePersistent = false)
     {
+        UnityEngine.Debug.LogWarning("serialize selected");
         var renderers = Selection.gameObjects.Select((go) => go.GetComponent<Renderer>()).Where((rend) => rend != null);
         foreach(var renderer in renderers)
         {
@@ -670,9 +680,11 @@ public class ExportScene : EditorWindow
 
     private void SerializeMaterials(IEnumerable<Renderer> renderers, bool savePersistent = false)
     {
+        UnityEngine.Debug.LogWarning("serialize");
         matRegistry = matRegistry != null ? matRegistry : new Dictionary<string, Material>();
         matLinks = matLinks != null ? matLinks : new Dictionary<Material, Material>();
         texLinks = texLinks != null ? texLinks : new Dictionary<Texture2D, Texture2D>();
+        UnityEngine.Debug.Log(renderers.Count());
         var mats = renderers
             .SelectMany((rend) => rend.sharedMaterials
             .Select((mat) => new MatRend(mat, rend)))
@@ -720,8 +732,9 @@ public class ExportScene : EditorWindow
                 )
             }
         ));
-        if(rgroups.Count() > 0)
+        if (rgroups.Count() > 0)
         {
+            UnityEngine.Debug.Log(rgroups);
             var updates = rgroups.Aggregate((rGroup1, rGroup2) =>
             {
                 if (rGroup2 == null) return rGroup1;
@@ -735,6 +748,8 @@ public class ExportScene : EditorWindow
             if (updates != null)
                 foreach (var update in updates)
                 {
+                    UnityEngine.Debug.LogWarning("herer");
+                    UnityEngine.Debug.Log(update);
                     update.Key.sharedMaterials = update.Value;
                 }
         }
@@ -742,38 +757,38 @@ public class ExportScene : EditorWindow
     private List<Renderer> Renderers { get
         {
             List<Renderer> renderers = FindObjectsOfType<Renderer>().ToList();
-            renderers.AddRange(FindObjectsOfType<SkinnedMeshRenderer>().Select((smr) => smr as Renderer));
-            renderers.AddRange(FindObjectsOfType<MeshRenderer>().Select((mr) => mr as Renderer));
             renderers = renderers.Where((x) => x.gameObject.activeInHierarchy && x.enabled).ToList();
             return renderers;
         } }
     private void SerializeAllMaterials(bool savePersistent = false)
     {
+        UnityEngine.Debug.Log(Renderers.Count());
         SerializeMaterials(Renderers, savePersistent);
     }
 
     private void DeserializeMaterials(IEnumerable<Renderer> renderers)
     {
-        HashSet<Material> toRemove = new HashSet<Material>();
-        foreach (var renderer in renderers)
-        {
-            renderer.sharedMaterials = renderer.sharedMaterials.Select
-            (
-                (mat) =>
-                {
-                    if (matLinks.ContainsKey(mat))
-                    {
-                        toRemove.Add(mat);
-                        mat = matLinks[mat];
-                    }
-                    return mat;
-                }
-            ).ToArray();
-        }
-        foreach (var material in toRemove)
-        {
-            matLinks.Remove(material);
-        }
+        //HashSet<Material> toRemove = new HashSet<Material>();
+        //foreach (var renderer in renderers)
+        //{
+        //    UnityEngine.Debug.Log(renderer.gameObject.name);
+        //    renderer.sharedMaterials = renderer.sharedMaterials.Select
+        //    (
+        //        (mat) =>
+        //        {
+        //            if (matLinks.ContainsKey(mat))
+        //            {
+        //                toRemove.Add(mat);
+        //                mat = matLinks[mat];
+        //            }
+        //            return mat;
+        //        }
+        //    ).ToArray();
+        //}
+        //foreach (var material in toRemove)
+        //{
+        //    matLinks.Remove(material);
+        //}
     }
 
     private void DeserializeAllMaterials()

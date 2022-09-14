@@ -216,7 +216,7 @@ public static class PipelineSettings
     public static void ClearConversionData()
     {
         DirectoryInfo conversionDirectory = new DirectoryInfo(ConversionFolder);
-        if (!conversionDirectory.Exists)
+        if (conversionDirectory.Exists)
         {
             var files = conversionDirectory.GetFiles();
             var subDirectories = conversionDirectory.GetDirectories();
