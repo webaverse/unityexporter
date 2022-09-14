@@ -150,6 +150,7 @@ public class ExportScene : EditorWindow
 
                 if(showAdvancedOptions)
                 {
+
                     savePersistentSelected = GUILayout.Toggle(savePersistentSelected, "Serialize into Persistent Assets (Are not deleted after export)");
                     if(GUILayout.Button("Serialize Selected Assets"))
                     {
@@ -680,11 +681,9 @@ public class ExportScene : EditorWindow
 
     private void SerializeMaterials(IEnumerable<Renderer> renderers, bool savePersistent = false)
     {
-        UnityEngine.Debug.LogWarning("serialize");
         matRegistry = matRegistry != null ? matRegistry : new Dictionary<string, Material>();
         matLinks = matLinks != null ? matLinks : new Dictionary<Material, Material>();
         texLinks = texLinks != null ? texLinks : new Dictionary<Texture2D, Texture2D>();
-        UnityEngine.Debug.Log(renderers.Count());
         var mats = renderers
             .SelectMany((rend) => rend.sharedMaterials
             .Select((mat) => new MatRend(mat, rend)))
@@ -748,8 +747,6 @@ public class ExportScene : EditorWindow
             if (updates != null)
                 foreach (var update in updates)
                 {
-                    UnityEngine.Debug.LogWarning("herer");
-                    UnityEngine.Debug.Log(update);
                     update.Key.sharedMaterials = update.Value;
                 }
         }
@@ -771,7 +768,6 @@ public class ExportScene : EditorWindow
         HashSet<Material> toRemove = new HashSet<Material>();
         foreach (var renderer in renderers)
         {
-            UnityEngine.Debug.Log(renderer.gameObject.name);
             renderer.sharedMaterials = renderer.sharedMaterials.Select
             (
                 (mat) =>
