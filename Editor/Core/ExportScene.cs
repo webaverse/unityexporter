@@ -768,27 +768,27 @@ public class ExportScene : EditorWindow
 
     private void DeserializeMaterials(IEnumerable<Renderer> renderers)
     {
-        //HashSet<Material> toRemove = new HashSet<Material>();
-        //foreach (var renderer in renderers)
-        //{
-        //    UnityEngine.Debug.Log(renderer.gameObject.name);
-        //    renderer.sharedMaterials = renderer.sharedMaterials.Select
-        //    (
-        //        (mat) =>
-        //        {
-        //            if (matLinks.ContainsKey(mat))
-        //            {
-        //                toRemove.Add(mat);
-        //                mat = matLinks[mat];
-        //            }
-        //            return mat;
-        //        }
-        //    ).ToArray();
-        //}
-        //foreach (var material in toRemove)
-        //{
-        //    matLinks.Remove(material);
-        //}
+        HashSet<Material> toRemove = new HashSet<Material>();
+        foreach (var renderer in renderers)
+        {
+            UnityEngine.Debug.Log(renderer.gameObject.name);
+            renderer.sharedMaterials = renderer.sharedMaterials.Select
+            (
+                (mat) =>
+                {
+                    if (matLinks.ContainsKey(mat))
+                    {
+                        toRemove.Add(mat);
+                        mat = matLinks[mat];
+                    }
+                    return mat;
+                }
+            ).ToArray();
+        }
+        foreach (var material in toRemove)
+        {
+            matLinks.Remove(material);
+        }
     }
 
     private void DeserializeAllMaterials()
