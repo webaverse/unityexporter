@@ -216,11 +216,19 @@ public class ExportScene : EditorWindow
                 }
                 GUILayout.Space(8);
                 // Create a Name TextField with a default value of "scene"
-                PipelineSettings.GLTFName = EditorGUILayout.TextField("Name:", String.IsNullOrEmpty(PipelineSettings.GLTFName) ? "scene" : PipelineSettings.GLTFName, GUILayout.ExpandWidth(true));
+                EditorGUILayout.BeginHorizontal();
+                EditorGUILayout.LabelField("Name: ", WEBAGuiStyles.CustomLabel(false, true, false), GUILayout.Width(80f));
+                PipelineSettings.GLTFName = EditorGUILayout.TextField(String.IsNullOrEmpty(PipelineSettings.GLTFName) ? "scene" : PipelineSettings.GLTFName, GUILayout.ExpandWidth(true));
+                EditorGUILayout.EndHorizontal();
+
+                GUILayout.Space(5);
 
                 if (PipelineSettings.ProjectFolder != "")
                 {
-                    EditorGUILayout.LabelField("Project Folder: " + PipelineSettings.ProjectFolder);
+                    EditorGUILayout.BeginHorizontal();
+                    EditorGUILayout.LabelField("Export To: ", WEBAGuiStyles.CustomLabel(false, true, false), GUILayout.Width(80f));
+                    EditorGUILayout.LabelField(PipelineSettings.ProjectFolder,WEBAGuiStyles.CustomLabel(false,false,true));
+                    EditorGUILayout.EndHorizontal();
                 }
                 GUILayout.Space(8);
                 if (GUILayout.Button("Set Output Directory", GUILayout.Height(30f)))
