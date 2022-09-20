@@ -850,8 +850,10 @@ public class ExportScene : EditorWindow
                 (renderer.sharedMaterial.mainTextureOffset != Vector2.one ||
                     renderer.sharedMaterial.mainTextureScale != Vector2.one);
             int lightIdx = hasLightmap ? renderer.lightmapIndex : -2;
+            // Random value required: Every mesh with lightmap must have its own mesh instance, cant share the same source mesh.
+            int randVal = hasLightmap ? UnityEngine.Random.Range(0,999999) : 0;
             Vector2 txrOffset = hasTxrOffset ? renderer.sharedMaterial.mainTextureOffset : Vector2.negativeInfinity;
-            registryID = String.Format("%d_%f_%f", lightIdx, txrOffset.x, txrOffset.y);
+            registryID = String.Format("%d_%f_%f", lightIdx, txrOffset.x, txrOffset.y) + randVal.ToString();
         }
     }
 
@@ -861,8 +863,9 @@ public class ExportScene : EditorWindow
         glRegistry = glRegistry != null ? glRegistry : new Dictionary<MeshRegistryKey, Mesh>();
 
         var regKey = new MeshRegistryKey(mesh, renderer);
-        if(glRegistry.ContainsKey(regKey))
+        if (glRegistry.ContainsKey(regKey))
         {
+            UnityEngine.Debug.Log("contains");
             return glRegistry[regKey];
         }
 
@@ -886,6 +889,10 @@ public class ExportScene : EditorWindow
         var renderers = Renderers.Where((renderer) => renderer.gameObject.activeInHierarchy && renderer.enabled);
         foreach(var renderer in renderers)
         {
+            UnityEngine.Debug.LogWarning("here materials");
+            UnityEngine.Debug.Log(renderer.sharedMaterial);
+            UnityEngine.Debug.Log(renderer.sharedMaterial.name);
+            UnityEngine.Debug.Log(renderer.sharedMaterials.Length);
             bool isSkinned = renderer.GetType() == typeof(SkinnedMeshRenderer);
             Mesh mesh = null;
             if (isSkinned)
@@ -903,7 +910,7 @@ public class ExportScene : EditorWindow
             bool hasLightmap = WebaUnity.HasLightmap(renderer);
             bool hasTxrOffset = renderer.sharedMaterial != null && 
                 (renderer.sharedMaterial.mainTextureOffset != Vector2.one ||
-                    renderer.sharedMaterial.mainTextureScale != Vector2.one);
+                    renderer.sharedMaterial.mainTextureScale != Vector2.one );
             
             if ((hasLightmap && PipelineSettings.lightmapMode == LightmapMode.BAKE_SEPARATE) ||
                     hasTxrOffset ||
@@ -911,13 +918,31 @@ public class ExportScene : EditorWindow
             {
 
                 var nuMesh = GenerateMesh(renderer, mesh, savePersistent);
-
+                UnityEngine.Debug.Log(nuMesh);
+                
                 if (hasLightmap)
                 {
+
                     
+                    UnityEngine.Debug.Log("has lightmap");
+
+                    //var nuUv2s = nuMesh.uv2.Select((uv2) => uv2 * new Vector2(off.x, off.y) + new Vector2(off.z, off.w)).ToArray();
+                    // var nuUv2s = nuMesh.uv2.Select((uv2) => new Vector2(uv2.x,1-uv2.y) * new Vector2(-off.x, -off.y) + new Vector2(off.z, off.w)).ToArray();
+                    //var nuUv2s = nuMesh.uv2.Select((uv2) => new Vector2(1f-uv2.x, 1f-uv2.y));.ToArray();
                     var off = renderer.lightmapScaleOffset;
-                    var nuUv2s = nuMesh.uv2.Select((uv2) => uv2 * new Vector2(off.x, off.y) + new Vector2(off.z, off.w)).ToArray();
-                    nuMesh.uv2 = nuUv2s;
+                    Vector2[] nuvs2 = new Vector2[nuMesh.uv2.Length];
+                    for (int i = 0; i < nuvs2.Length; i++)
+                    {
+                        float valx = nuMesh.uv2[i].x;
+                        float valy = nuMesh.uv2[i].y;
+
+                        valx = (valx * off.x) + off.z;
+                        //valy = (-(valy * off.y) - off.w) + 1f; // IN GLTF UVS IN Y AR INVERSED, THEY GO FROM LEFT TOP CORNER TO BOTTOM RIGHT CORNER, Y MUST BE INVERSED
+                        valy = (valy * off.y) + off.w; // IN GLTF UVS IN Y AR INVERSED, THEY GO FROM LEFT TOP CORNER TO BOTTOM RIGHT CORNER, Y MUST BE INVERSED
+
+                        nuvs2[i] = new Vector2(valx, valy);
+                    }
+                    nuMesh.uv2 = nuvs2;
                     nuMesh.UploadMeshData(false);
                 }
 
