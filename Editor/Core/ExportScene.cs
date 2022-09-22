@@ -95,25 +95,28 @@ public class ExportScene : EditorWindow
         {
 
             case State.INITIAL:
-                    PipelineSettings.ExportLights = EditorGUILayout.Toggle("Lights", PipelineSettings.ExportLights);
-                    PipelineSettings.ExportColliders = EditorGUILayout.Toggle("Colliders", PipelineSettings.ExportColliders);
-                    PipelineSettings.ExportSkybox = EditorGUILayout.Toggle("Skybox", PipelineSettings.ExportSkybox);
-                    //PipelineSettings.ExportEnvmap = EditorGUILayout.Toggle("Envmap", PipelineSettings.ExportEnvmap);
-                    GUILayout.Space(8);
-                    PipelineSettings.meshMode = (MeshExportMode)EditorGUILayout.EnumPopup("Mesh Export Options", PipelineSettings.meshMode);
-                    PipelineSettings.lightmapMode = (LightmapMode)EditorGUILayout.EnumPopup("Lightmap Mode", PipelineSettings.lightmapMode);
-                    // Add a label to indication that the BAKE_SEPARATE lightmap mode will export MOZ_lightmap extension
-                    if (PipelineSettings.lightmapMode != LightmapMode.BAKE_SEPARATE)
-                    {
-                        EditorGUILayout.HelpBox("The MOZ_lightmap extension is only supported with BAKE_SEPARATE", MessageType.Info);
-                    }
-                    GUILayout.Space(8);
-                    PipelineSettings.CombinedTextureResolution = EditorGUILayout.IntField("Max Texture Resolution", PipelineSettings.CombinedTextureResolution);
+                PipelineSettings.ExportLights = EditorGUILayout.Toggle("Lights", PipelineSettings.ExportLights);
+                GUI.enabled = false;
+                EditorGUILayout.LabelField("*Coming soon :)", WEBAGuiStyles.CustomColorLabel(false,true,true,Color.yellow));
+                PipelineSettings.ExportColliders = EditorGUILayout.Toggle("Colliders", PipelineSettings.ExportColliders);
+                PipelineSettings.ExportSkybox = EditorGUILayout.Toggle("Skybox", PipelineSettings.ExportSkybox);
+                PipelineSettings.ExportEnvmap = EditorGUILayout.Toggle("Envmap", PipelineSettings.ExportEnvmap);
+                GUI.enabled = true;
+                GUILayout.Space(8);
+                PipelineSettings.meshMode = (MeshExportMode)EditorGUILayout.EnumPopup("Mesh Export Options", PipelineSettings.meshMode);
+                PipelineSettings.lightmapMode = (LightmapMode)EditorGUILayout.EnumPopup("Lightmap Mode", PipelineSettings.lightmapMode);
+                // Add a label to indication that the BAKE_SEPARATE lightmap mode will export MOZ_lightmap extension
+                if (PipelineSettings.lightmapMode != LightmapMode.BAKE_SEPARATE)
+                {
+                    EditorGUILayout.HelpBox("The MOZ_lightmap extension is only supported with BAKE_SEPARATE", MessageType.Info);
+                }
+                GUILayout.Space(8);
+                PipelineSettings.CombinedTextureResolution = EditorGUILayout.IntField("Max Texture Resolution", PipelineSettings.CombinedTextureResolution);
                 
                 
                 GUILayout.Space(16);
-
-                showOptimization = EditorGUILayout.Foldout(showOptimization, "GLTF Optimization");
+                showOptimization = false;
+                //showOptimization = EditorGUILayout.Foldout(showOptimization, "GLTF Optimization");
                 //
                 if (showOptimization)
                 {
@@ -135,9 +138,9 @@ public class ExportScene : EditorWindow
                     GUILayout.Space(16);
                 }
 
-                showAdvancedOptions = EditorGUILayout.Foldout(showAdvancedOptions, "Advanced Tools");
-
-                if(showAdvancedOptions)
+                showAdvancedOptions = false;
+                //showAdvancedOptions = EditorGUILayout.Foldout(showAdvancedOptions, "Advanced Tools");
+                if (showAdvancedOptions)
                 {
 
                     savePersistentSelected = GUILayout.Toggle(savePersistentSelected, "Serialize into Persistent Assets (Are not deleted after export)");
@@ -216,11 +219,19 @@ public class ExportScene : EditorWindow
                 }
                 GUILayout.Space(8);
                 // Create a Name TextField with a default value of "scene"
-                PipelineSettings.GLTFName = EditorGUILayout.TextField("Name:", String.IsNullOrEmpty(PipelineSettings.GLTFName) ? "scene" : PipelineSettings.GLTFName, GUILayout.ExpandWidth(true));
+                EditorGUILayout.BeginHorizontal();
+                EditorGUILayout.LabelField("Name: ", WEBAGuiStyles.CustomLabel(false, true, false), GUILayout.Width(80f));
+                PipelineSettings.GLTFName = EditorGUILayout.TextField(String.IsNullOrEmpty(PipelineSettings.GLTFName) ? "scene" : PipelineSettings.GLTFName, GUILayout.ExpandWidth(true));
+                EditorGUILayout.EndHorizontal();
+
+                GUILayout.Space(5);
 
                 if (PipelineSettings.ProjectFolder != "")
                 {
-                    EditorGUILayout.LabelField("Project Folder: " + PipelineSettings.ProjectFolder);
+                    EditorGUILayout.BeginHorizontal();
+                    EditorGUILayout.LabelField("Export To: ", WEBAGuiStyles.CustomLabel(false, true, false), GUILayout.Width(80f));
+                    EditorGUILayout.LabelField(PipelineSettings.ProjectFolder,WEBAGuiStyles.CustomLabel(false,false,true));
+                    EditorGUILayout.EndHorizontal();
                 }
                 GUILayout.Space(8);
                 if (GUILayout.Button("Set Output Directory", GUILayout.Height(30f)))
@@ -842,8 +853,10 @@ public class ExportScene : EditorWindow
                 (renderer.sharedMaterial.mainTextureOffset != Vector2.one ||
                     renderer.sharedMaterial.mainTextureScale != Vector2.one);
             int lightIdx = hasLightmap ? renderer.lightmapIndex : -2;
+            // Random value required: Every mesh with lightmap must have its own mesh instance, cant share the same source mesh.
+            int randVal = hasLightmap ? UnityEngine.Random.Range(0,999999) : 0;
             Vector2 txrOffset = hasTxrOffset ? renderer.sharedMaterial.mainTextureOffset : Vector2.negativeInfinity;
-            registryID = String.Format("%d_%f_%f", lightIdx, txrOffset.x, txrOffset.y);
+            registryID = String.Format("%d_%f_%f", lightIdx, txrOffset.x, txrOffset.y) + randVal.ToString();
         }
     }
 
@@ -853,8 +866,9 @@ public class ExportScene : EditorWindow
         glRegistry = glRegistry != null ? glRegistry : new Dictionary<MeshRegistryKey, Mesh>();
 
         var regKey = new MeshRegistryKey(mesh, renderer);
-        if(glRegistry.ContainsKey(regKey))
+        if (glRegistry.ContainsKey(regKey))
         {
+            UnityEngine.Debug.Log("contains");
             return glRegistry[regKey];
         }
 
@@ -878,6 +892,10 @@ public class ExportScene : EditorWindow
         var renderers = Renderers.Where((renderer) => renderer.gameObject.activeInHierarchy && renderer.enabled);
         foreach(var renderer in renderers)
         {
+            UnityEngine.Debug.LogWarning("here materials");
+            UnityEngine.Debug.Log(renderer.sharedMaterial);
+            UnityEngine.Debug.Log(renderer.sharedMaterial.name);
+            UnityEngine.Debug.Log(renderer.sharedMaterials.Length);
             bool isSkinned = renderer.GetType() == typeof(SkinnedMeshRenderer);
             Mesh mesh = null;
             if (isSkinned)
@@ -895,7 +913,7 @@ public class ExportScene : EditorWindow
             bool hasLightmap = WebaUnity.HasLightmap(renderer);
             bool hasTxrOffset = renderer.sharedMaterial != null && 
                 (renderer.sharedMaterial.mainTextureOffset != Vector2.one ||
-                    renderer.sharedMaterial.mainTextureScale != Vector2.one);
+                    renderer.sharedMaterial.mainTextureScale != Vector2.one );
             
             if ((hasLightmap && PipelineSettings.lightmapMode == LightmapMode.BAKE_SEPARATE) ||
                     hasTxrOffset ||
@@ -903,13 +921,31 @@ public class ExportScene : EditorWindow
             {
 
                 var nuMesh = GenerateMesh(renderer, mesh, savePersistent);
-
+                UnityEngine.Debug.Log(nuMesh);
+                
                 if (hasLightmap)
                 {
+
                     
+                    UnityEngine.Debug.Log("has lightmap");
+
+                    //var nuUv2s = nuMesh.uv2.Select((uv2) => uv2 * new Vector2(off.x, off.y) + new Vector2(off.z, off.w)).ToArray();
+                    // var nuUv2s = nuMesh.uv2.Select((uv2) => new Vector2(uv2.x,1-uv2.y) * new Vector2(-off.x, -off.y) + new Vector2(off.z, off.w)).ToArray();
+                    //var nuUv2s = nuMesh.uv2.Select((uv2) => new Vector2(1f-uv2.x, 1f-uv2.y));.ToArray();
                     var off = renderer.lightmapScaleOffset;
-                    var nuUv2s = nuMesh.uv2.Select((uv2) => uv2 * new Vector2(off.x, off.y) + new Vector2(off.z, off.w)).ToArray();
-                    nuMesh.uv2 = nuUv2s;
+                    Vector2[] nuvs2 = new Vector2[nuMesh.uv2.Length];
+                    for (int i = 0; i < nuvs2.Length; i++)
+                    {
+                        float valx = nuMesh.uv2[i].x;
+                        float valy = nuMesh.uv2[i].y;
+
+                        valx = (valx * off.x) + off.z;
+                        //valy = (-(valy * off.y) - off.w) + 1f; // IN GLTF UVS IN Y AR INVERSED, THEY GO FROM LEFT TOP CORNER TO BOTTOM RIGHT CORNER, Y MUST BE INVERSED
+                        valy = (valy * off.y) + off.w; // IN GLTF UVS IN Y AR INVERSED, THEY GO FROM LEFT TOP CORNER TO BOTTOM RIGHT CORNER, Y MUST BE INVERSED
+
+                        nuvs2[i] = new Vector2(valx, valy);
+                    }
+                    nuMesh.uv2 = nuvs2;
                     nuMesh.UploadMeshData(false);
                 }
 
